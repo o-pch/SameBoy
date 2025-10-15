@@ -16,7 +16,7 @@ endif
 DL_EXT := so
 
 ifeq ($(PLATFORM),windows32)
-_ := $(shell chcp 65001)
+_ := $(shell chcp 932)
 EXESUFFIX:=.exe
 NATIVE_CC = clang -IWindows -Wno-deprecated-declarations --target=x86_64-pc-windows
 SDL_AUDIO_DRIVERS ?= xaudio2 sdl
