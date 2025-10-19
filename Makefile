@@ -332,7 +332,7 @@ LDFLAGS += -Wl,/NODEFAULTLIB:libcmt.lib
 
 ifneq ($(USE_MSVCRT_DLL),)
 CFLAGS += -D_NO_CRT_STDIO_INLINE -DUSE_MSVCRT_DLL
-$(BIN)/SDL/sameboy.exe: $(OBJ)/Windows/msvcrt.lib
+$(BIN)/SDL/MyRPG.exe: $(OBJ)/Windows/msvcrt.lib
 $(LIBDIR)/libsameboy.dll: $(OBJ)/Windows/msvcrt.lib
 endif
 
@@ -385,7 +385,7 @@ endif
 # Define our targets
 
 ifeq ($(PLATFORM),windows32)
-SDL_TARGET := $(BIN)/SDL/sameboy.exe $(BIN)/SDL/SDL2.dll $(BIN)/SDL/sameboy_debugger.txt
+SDL_TARGET := $(BIN)/SDL/MyRPG.exe $(BIN)/SDL/SDL2.dll $(BIN)/SDL/sameboy_debugger.txt
 TESTER_TARGET := $(BIN)/tester/sameboy_tester.exe
 else
 SDL_TARGET := $(BIN)/SDL/sameboy
@@ -686,14 +686,14 @@ ifeq ($(CONF), release)
 	$(CODESIGN) $@
 endif
 
-$(BIN)/SDL/sameboy.exe: $(CORE_OBJECTS) $(SDL_OBJECTS) $(OBJ)/Windows/resources.o
+$(BIN)/SDL/MyRPG.exe: $(CORE_OBJECTS) $(SDL_OBJECTS) $(OBJ)/Windows/resources.o
 	-@$(MKDIR) -p $(dir $@)
 	$(CC) $^ -o $@ $(LDFLAGS) $(SDL_LDFLAGS) $(GL_LDFLAGS) -Wl,/subsystem:windows
 	
 $(BIN)/SDL/sameboy_debugger.txt:
 	echo Looking for sameboy_debugger.exe? > $@
 	echo >> $@
-	echo Starting with SameBoy v1.0.1, sameboy.exe and sameboy_debugger.exe >> $@
+	echo Starting with SameBoy v1.0.1, MyRPG.exe and sameboy_debugger.exe >> $@
 	echo have been merged into a single executable. You can open a debugger >> $@
 	echo console at any time by pressing  Ctrl+C to interrupt the currently >> $@
 	echo open ROM.  Once you\'re done debugging,  you can close the debugger >> $@

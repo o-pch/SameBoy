@@ -6,7 +6,7 @@
     name="com.github.liji32.sameboy.windows"
     type="win32"
     />
-    <description>SameBoy</description>
+    <description>MyRPG</description>
     <dependency>
         <dependentAssembly>
             <assemblyIdentity

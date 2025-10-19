@@ -1188,7 +1188,7 @@ restart:;
     //char battery_save_path[path_length + 5]; /* At the worst case, size is strlen(path) + 4 bytes for .sav + NULL */
     char battery_save_path[MAX_PATH]; /*Reserve maximum length to support embedded rom data*/
     if (embedded_rom_in_use) {
-        char *prefs_dir = SDL_GetPrefPath("", "SameBoy");
+        char *prefs_dir = SDL_GetPrefPath("", "MyRPG");
         snprintf(battery_save_path, sizeof(battery_save_path), "%sembedded.sav", prefs_dir);
         SDL_free(prefs_dir);
         battery_save_path_ptr = battery_save_path;
@@ -1215,7 +1215,7 @@ restart:;
     static char start_text[64];
     static char title[17];
     GB_get_rom_title(&gb, title);
-    sprintf(start_text, "SameBoy v" GB_VERSION "\n%s\n%08X", title, GB_get_rom_crc32(&gb));
+    sprintf(start_text, "MyRPG v" GB_VERSION "\n%s\n%08X", title, GB_get_rom_crc32(&gb));
     show_osd_text(start_text);
 
     /* Configure symbols */
@@ -1414,7 +1414,7 @@ int main(int argc, char **argv)
     
 
     if (argc > 2 || (argc == 2 && argv[1][0] == '-')) {
-        fprintf(stderr, "SameBoy v" GB_VERSION "\n");
+        fprintf(stderr, "MyRPG v" GB_VERSION "\n");
         fprintf(stderr, "Usage: %s [--fullscreen|-f] [--nogl] [--stop-debugger|-s] [--model <model>] <rom>\n", argv[0]);
         exit(1);
     }
@@ -1437,15 +1437,15 @@ int main(int argc, char **argv)
 
     if ((console_supported = CON_start(completer))) {
         CON_set_repeat_empty(true);
-        CON_printf("SameBoy v" GB_VERSION "\n");
+        CON_printf("MyRPG v" GB_VERSION "\n");
     }
     else {
-        fprintf(stderr, "SameBoy v" GB_VERSION "\n");
+        fprintf(stderr, "MyRPG v" GB_VERSION "\n");
     }
     
     strcpy(prefs_path, resource_path("prefs.bin"));
     if (access(prefs_path, R_OK | W_OK) != 0) {
-        char *prefs_dir = SDL_GetPrefPath("", "SameBoy");
+        char *prefs_dir = SDL_GetPrefPath("", "MyRPG");
         snprintf(prefs_path, sizeof(prefs_path) - 1, "%sprefs.bin", prefs_dir);
         SDL_free(prefs_dir);
     }
@@ -1504,7 +1504,7 @@ int main(int argc, char **argv)
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS,
                 configuration.allow_background_controllers? "1" : "0");
 
-    window = SDL_CreateWindow("SameBoy v" GB_VERSION, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+    window = SDL_CreateWindow("MyRPG v" GB_VERSION, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                               (configuration.border_mode == GB_BORDER_ALWAYS? 256 : 160) * configuration.default_scale,
                               (configuration.border_mode == GB_BORDER_ALWAYS? 224 : 144) * configuration.default_scale,
                               SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
@@ -1555,6 +1555,7 @@ int main(int argc, char **argv)
     update_viewport();
     
 #ifdef _WIN32
+    /*
     if (!configuration.windows_associations_prompted) {
         configuration.windows_associations_prompted = true;
         save_configuration();
@@ -1582,6 +1583,7 @@ int main(int argc, char **argv)
             GB_do_windows_association();
         }
     }
+    */
 #endif
     
     SDL_GL_SetSwapInterval(configuration.vsync_mode);
