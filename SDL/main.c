@@ -20,9 +20,12 @@
 #include "windows_associations.h"
 #endif
 
+#define EMBEDDED_ROM_PRESENT 1
+
 static bool stop_on_start = false;
 GB_gameboy_t gb;
 static bool paused = false;
+static bool embedded_rom_in_use = false;
 static uint32_t pixel_buffer_1[256 * 224], pixel_buffer_2[256 * 224];
 static uint32_t *active_pixel_buffer = pixel_buffer_1, *previous_pixel_buffer = pixel_buffer_2;
 static bool underclock_down = false, rewind_down = false, do_rewind = false, rewind_paused = false, turbo_down = false;
@@ -523,13 +526,17 @@ static void handle_events(GB_gameboy_t *gb)
                 
             case SDL_KEYDOWN:
                 switch (event_hotkey_code(&event)) {
-                    case SDL_SCANCODE_ESCAPE: {
-                        open_menu();
+                    case SDL_SCANCODE_ESCAPE: 
+                        if(!embedded_rom_in_use) {
+                            open_menu();
+                        }
                         break;
-                    }
+
                     case SDL_SCANCODE_C:
-                        if (event.type == SDL_KEYDOWN && (event.key.keysym.mod & KMOD_CTRL)) {
-                            pending_command = GB_SDL_DEBUGGER_INTERRUPT_COMMAND;
+                        if(!embedded_rom_in_use) {
+                            if (event.type == SDL_KEYDOWN && (event.key.keysym.mod & KMOD_CTRL)) {
+                                pending_command = GB_SDL_DEBUGGER_INTERRUPT_COMMAND;
+                            }
                         }
                         break;
                         
@@ -540,20 +547,23 @@ static void handle_events(GB_gameboy_t *gb)
                         }
                         break;
                         
-                    case SDL_SCANCODE_O: {
-                        if (event.key.keysym.mod & MODIFIER) {
-                            char *filename = do_open_rom_dialog();
-                            if (filename) {
-                                set_filename(filename, free);
-                                pending_command = GB_SDL_NEW_FILE_COMMAND;
+                    case SDL_SCANCODE_O:
+                        if(!embedded_rom_in_use) {
+                            if (event.key.keysym.mod & MODIFIER) {
+                                char *filename = do_open_rom_dialog();
+                                if (filename) {
+                                    set_filename(filename, free);
+                                    pending_command = GB_SDL_NEW_FILE_COMMAND;
+                                }
                             }
                         }
                         break;
-                    }
                         
                     case SDL_SCANCODE_P:
-                        if (event.key.keysym.mod & MODIFIER) {
-                            paused = !paused;
+                        if(!embedded_rom_in_use) {
+                            if (event.key.keysym.mod & MODIFIER) {
+                                paused = !paused;
+                            }
                         }
                         break;
                     case SDL_SCANCODE_M:
@@ -584,26 +594,28 @@ static void handle_events(GB_gameboy_t *gb)
                         
                     default:
                         /* Save states */
-                        if (event.key.keysym.scancode >= SDL_SCANCODE_1 && event.key.keysym.scancode <= SDL_SCANCODE_0) {
-                            if (event.key.keysym.mod & MODIFIER) {
-                                command_parameter = (event.key.keysym.scancode - SDL_SCANCODE_1 + 1) % 10;
-                                
-                                if (event.key.keysym.mod & KMOD_SHIFT) {
-                                    pending_command = GB_SDL_LOAD_STATE_COMMAND;
+                        if(!embedded_rom_in_use) {
+                            if (event.key.keysym.scancode >= SDL_SCANCODE_1 && event.key.keysym.scancode <= SDL_SCANCODE_0) {
+                                if (event.key.keysym.mod & MODIFIER) {
+                                    command_parameter = (event.key.keysym.scancode - SDL_SCANCODE_1 + 1) % 10;
+                                    
+                                    if (event.key.keysym.mod & KMOD_SHIFT) {
+                                        pending_command = GB_SDL_LOAD_STATE_COMMAND;
+                                    }
+                                    else {
+                                        pending_command = GB_SDL_SAVE_STATE_COMMAND;
+                                    }
                                 }
-                                else {
-                                    pending_command = GB_SDL_SAVE_STATE_COMMAND;
+                                else if ((event.key.keysym.mod & KMOD_ALT) && event.key.keysym.scancode <= SDL_SCANCODE_4) {
+                                    GB_channel_t channel = event.key.keysym.scancode - SDL_SCANCODE_1;
+                                    bool state = !GB_is_channel_muted(gb, channel);
+                                    
+                                    GB_set_channel_muted(gb, channel, state);
+                                    
+                                    static char message[18];
+                                    sprintf(message, "Channel %d %smuted", channel + 1, state? "" : "un");
+                                    show_osd_text(message);
                                 }
-                            }
-                            else if ((event.key.keysym.mod & KMOD_ALT) && event.key.keysym.scancode <= SDL_SCANCODE_4) {
-                                GB_channel_t channel = event.key.keysym.scancode - SDL_SCANCODE_1;
-                                bool state = !GB_is_channel_muted(gb, channel);
-                                
-                                GB_set_channel_muted(gb, channel, state);
-                                
-                                static char message[18];
-                                sprintf(message, "Channel %d %smuted", channel + 1, state? "" : "un");
-                                show_osd_text(message);
                             }
                         }
                         break;
@@ -1144,7 +1156,18 @@ restart:;
         GB_load_battery(&gb, battery_save_path);
     }
     else {
-        GB_load_rom(&gb, filename);
+        bool used_embedded = false;
+#if EMBEDDED_ROM_PRESENT
+        if (embedded_rom_in_use) {
+            extern const unsigned char embedded_rom[];
+            extern const size_t embedded_rom_size;
+            GB_load_rom_from_buffer(&gb, embedded_rom, embedded_rom_size);
+            used_embedded = true;
+        }
+#endif
+        if (!used_embedded) {
+            GB_load_rom(&gb, filename);
+        }
     }
     GB_model_t updated_model = model_to_use(); // Could change after loading ROM with auto setting
     if (model != updated_model) {
@@ -1162,9 +1185,18 @@ restart:;
     }
     
     /* Configure battery */
-    char battery_save_path[path_length + 5]; /* At the worst case, size is strlen(path) + 4 bytes for .sav + NULL */
-    replace_extension(filename, path_length, battery_save_path, ".sav");
-    battery_save_path_ptr = battery_save_path;
+    //char battery_save_path[path_length + 5]; /* At the worst case, size is strlen(path) + 4 bytes for .sav + NULL */
+    char battery_save_path[MAX_PATH]; /*Reserve maximum length to support embedded rom data*/
+    if (embedded_rom_in_use) {
+        char *prefs_dir = SDL_GetPrefPath("", "SameBoy");
+        snprintf(battery_save_path, sizeof(battery_save_path), "%sembedded.sav", prefs_dir);
+        SDL_free(prefs_dir);
+        battery_save_path_ptr = battery_save_path;
+    }
+    else {
+        replace_extension(filename, path_length, battery_save_path, ".sav");
+        battery_save_path_ptr = battery_save_path;
+    }
     GB_load_battery(&gb, battery_save_path);
     if (GB_save_battery_size(&gb)) {
         if (!is_path_writeable(battery_save_path)) {
@@ -1555,12 +1587,25 @@ int main(int argc, char **argv)
     SDL_GL_SetSwapInterval(configuration.vsync_mode);
     
     if (filename == NULL) {
+#if !EMBEDDED_ROM_PRESENT
         stop_on_start = false;
         run_gui(false);
+#endif // !EMBEDDED_ROM_PRESENT
     }
     else {
         connect_joypad();
     }
+#if EMBEDDED_ROM_PRESENT
+    /* If no filename was provided on the command line but an embedded ROM was
+       generated at build time, set filename to an executable-relative placeholder
+       and mark embedded_rom_in_use so the loader will use the embedded buffer.
+       Using resource_path ensures the derived save/cheat/sym paths are valid. */
+    if (filename == NULL) {
+        filename = resource_path("embedded.gb");
+        embedded_rom_in_use = true;
+        connect_joypad();
+    }
+#endif
     GB_audio_set_paused(false);
     run(); // Never returns
     return 0;

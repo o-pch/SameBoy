@@ -428,6 +428,24 @@ ifeq ($(PLATFORM),windows32)
 CORE_SOURCES += $(shell ls Windows/*.c)
 endif
 
+# If EMBED_ROM is set, generate a C source file with the ROM bytes and include it
+# Usage: make sdl EMBED_ROM=embed.gb
+ifneq ($(strip $(EMBED_ROM)),)
+EMBEDDED_C := $(OBJ)/embedded_rom.c
+SDL_SOURCES += $(EMBEDDED_C)
+
+# Rule: generate embedded C from a ROM file. Use PowerShell on Windows, xxd on Unix
+$(EMBEDDED_C): $(EMBED_ROM)
+	-@$(MKDIR) -p $(dir $@)
+	@if [ "$(PLATFORM)" = "windows32" ]; then \
+		powershell -NoProfile -ExecutionPolicy Bypass -File tools/make_embedded_rom.ps1 -InPath "$(EMBED_ROM)" -OutPath "$@"; \
+	else \
+		xxd -i "$(EMBED_ROM)" > "$@"; \
+		sed -n '1,200p' "$@" > "$@.tmp" && mv "$@.tmp" "$@"; \
+	fi
+
+endif
+
 CORE_OBJECTS := $(patsubst %,$(OBJ)/%.o,$(CORE_SOURCES))
 PUBLIC_HEADERS := $(patsubst Core/%,$(INC)/%,$(CORE_HEADERS))
 COCOA_OBJECTS := $(patsubst %,$(OBJ)/%.o,$(COCOA_SOURCES))

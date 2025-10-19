@@ -31,21 +31,23 @@ Start:
     ld a, %01_01_01_00
     ldh [rBGP], a
 
+; !!Disabled nintendo logo animation
 ; Load logo from ROM.
 ; A nibble represents a 4-pixels line, 2 bytes represent a 4x4 tile, scaled to 8x8.
 ; Tiles are ordered left to right, top to bottom.
-    ld de, NintendoLogo
-    ld hl, _VRAM + $10 ; This is where we load the tiles in VRAM
+;    ld de, NintendoLogo
+;    ld hl, _VRAM + $10 ; This is where we load the tiles in VRAM
 
+; !!Disabled nintendo logo animation
 .loadLogoLoop
-    ld a, [de] ; Read 2 rows
-    ld b, a
-    call DoubleBitsAndWriteRow
-    call DoubleBitsAndWriteRow
-    inc de
-    ld a, e
-    xor LOW(NintendoLogoEnd)
-    jr nz, .loadLogoLoop
+;    ld a, [de] ; Read 2 rows
+;    ld b, a
+;    call DoubleBitsAndWriteRow
+;    call DoubleBitsAndWriteRow
+;    inc de
+;    ld a, e
+;    xor LOW(NintendoLogoEnd)
+;    jr nz, .loadLogoLoop
 
 ; Load trademark symbol
     ld de, TrademarkSymbol
