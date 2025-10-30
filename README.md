@@ -2,6 +2,9 @@
 
 SameBoy is an open source Game Boy (DMG) and Game Boy Color (CGB) emulator, written in portable C. It has a native Cocoa frontend for macOS, an SDL frontend for other operating systems, and a libretro core. It also includes a text-based debugger with an expression evaluator. Visit [the website](https://sameboy.github.io/).
 
+## Note about this repository: 
+this fork contains local customizations. See the [Customization from original SameBoy](#customization-from-original-sameboy) section later in this README for details on what has been changed.
+
 ## Features
 Features common to both Cocoa and SDL versions:
  * Supports Game Boy (DMG) and Game Boy Color (CGB) emulation
@@ -67,3 +70,43 @@ The SDL port will look for resource files with a path relative to executable and
 Linux, BSD, and other FreeDesktop users can run `sudo make install` to install SameBoy as both a GUI app and a command line tool.
 
 SameBoy is compiled and tested on macOS, Ubuntu and 64-bit Windows 10.
+
+# Customization from original SameBoy
+## Windows convenience: using the `External/` directory
+
+If you'd like a self-contained Windows setup, you can place prebuilt tool binaries under an `External/` directory in the project root. For example:
+
+ * `External/rgbds/` (rgbds binaries)
+ * `External/make/` (make.exe and related files)
+ * `External/sdl2/` (SDL2 development binaries and headers)
+
+The repository includes `init_build_env.bat`, which will add those `External/` subdirectories to your `%PATH%` for the current command-prompt session. This makes it easier to build without installing those tools system-wide.
+
+Important: `init_build_env.bat` only affects the current terminal session, so you must run it once in each new Command Prompt or PowerShell window before running `build.bat` (or invoking `make`) from that shell. Running `init_build_env.bat` sets up the environment for that session; if you open a new terminal window you will need to run it again there.
+
+Example (from the repository root, one time per terminal session):
+
+  `init_build_env.bat`
+
+After running the script in your terminal you can run `build.bat` or `make sdl` as usual.
+
+## Embedding a ROM into the executable
+
+SameBoy supports embedding a Game Boy ROM into the built executable so that the emulator will automatically load that ROM on startup. This is useful when you want to distribute a single executable that immediately runs a bundled game.
+
+- To embed a ROM at build time, set the `EMBED_ROM` make variable to the path of the ROM you want embedded. For example:
+
+  `make sdl EMBED_ROM=path/to/your_game.gb`
+
+- Alternatively, place a ROM named `embed.gb` in the project root and run the supplied `build.bat` on Windows; `build.bat` will call make with `EMBED_ROM=embed.gb` by default.
+
+### Behavior and save files
+
+- When a ROM is embedded the emulator will prefer it only when no ROM is supplied on the command line. If you run `sameboy.exe some_other.gb` the command-line ROM will take precedence.
+- Battery/save files for embedded ROMs are stored in a writable preferences directory returned by `SDL_GetPrefPath` (for example on Windows this is typically `%APPDATA%\SameBoy`). The embedded ROM uses a fixed save filename (for example `embedded.sav` / `embedded.ram`) so progress is preserved between runs.
+- Embedding a ROM increases the size of the resulting executable by the size of the ROM.
+
+### Legal
+
+Do not embed or distribute ROMs that you do not have the legal right to distribute. The SameBoy project and this repository do not grant any rights to redistribute commercial game ROMs.
+
